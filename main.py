@@ -40,7 +40,7 @@ def pose_detection(data, context):
     dl_blob.download_to_filename(local_file_path)
 
     dt_now = datetime.datetime.now()
-    formatted_dt = dt_now.strftime('%Y/%m/%d %H:%M:%S')
+    formatted_dt = dt_now.strftime('%Y-%m-%d-%H-%M-%S')
     output_thumbnail_filename = f"thumbnail_image_{formatted_dt}.jpg"
     output_csv_filename = f"pose_points_{formatted_dt}.csv"
 
