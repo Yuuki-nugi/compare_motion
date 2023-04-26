@@ -6,6 +6,7 @@ import cv2
 import csv
 import os
 import datetime
+import pytz
 import mediapipe as mp
 from urllib.parse import unquote
 
@@ -15,8 +16,6 @@ mp_pose = mp.solutions.pose
 client = firestore.Client()
 
 
-# Converts strings added to /messages/{pushId}/original to uppercase
-
 def pose_detection(data, context):
     path_parts = context.resource.split('/documents/')[1].split('/')
     user_id = path_parts[1]
@@ -24,22 +23,14 @@ def pose_detection(data, context):
     storage_client = storage.Client()
 
     bucket = storage_client.bucket("athlete-crowd-dev.appspot.com")
-    video_url = unquote(data["value"]["fields"]["videoUrl"]["stringValue"])
-    download_path = video_url.split("athlete-crowd-dev.appspot.com/o/")[1]
+    video_file_name = data["value"]["fields"]["videoFileName"]["stringValue"]
 
-    pattern = r'\/([^%]+)\?'
-    match = re.search(pattern, download_path)
+    local_file_path = f"/tmp/{video_file_name}"
 
-    filename = match.group(1).split("/")[-1]
-
-    local_file_path = f"/tmp/{filename}"
-    # %2Fを/に置換。replace("%2F", "/")だとFしか置換されない
-    storage_path = download_path.split("?")[0]
-
-    dl_blob = bucket.blob(storage_path)
+    dl_blob = bucket.blob(f"uploaded/video/{user_id}/{video_file_name}")
     dl_blob.download_to_filename(local_file_path)
 
-    dt_now = datetime.datetime.now()
+    dt_now = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
     formatted_dt = dt_now.strftime('%Y-%m-%d-%H-%M-%S')
     output_thumbnail_filename = f"thumbnail_image_{formatted_dt}.jpg"
     output_csv_filename = f"pose_points_{formatted_dt}.csv"
@@ -65,13 +56,13 @@ def pose_detection(data, context):
     default_motion_type_ref = client.collection("sport_type").document("bwukr89IMu8vpbUse58w").collection(
         "event_type").document("ZuNCp9bLyvWrujKckiB6").collection("motion_type").document("lg4teMIv0cyEXl9tDyZ9")
 
-    motion_record_data = {"boneCsvUrl": up_csv_blob.path, "id": motion_record_ref.id,
+    motion_record_data = {"boneCsvFileName": output_csv_filename, "id": motion_record_ref.id,
                           "motionTypeRef": default_motion_type_ref, "comment": "",
-                          "thumbnailUrl": up_thumbnail_blob.path, "createdAt": firestore.SERVER_TIMESTAMP,
+                          "thumbnailFileName": output_thumbnail_filename, "createdAt": firestore.SERVER_TIMESTAMP,
                           "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": False,
                           "model": "mediapipe-default", "shootedDate": firestore.SERVER_TIMESTAMP,
                           "shootingVerticalAngle": 0, "shootingHorizontalAngle": 90, "title": "未設定",
-                          "version": 0, "videoUrl": video_url}
+                          "version": 0, "videoFileName": video_file_name}
 
     motion_record_ref.set(motion_record_data)
 
@@ -104,9 +95,10 @@ def execute_detection(video_path, output_csv_path, output_thumbnail_path):
                         for i, landmark in enumerate(results.pose_landmarks.landmark):
                             row_data.append(landmark.x * image_width)
                             row_data.append(landmark.y * image_height)
+                            row_data.append(landmark.z)
 
                     else:
-                        row_data = [0] * 66  # 33 landmarks * 2 (x, y)
+                        row_data = [0] * 99  # 33 landmarks * 2 (x, y)
 
                     writer.writerow(row_data)
 
