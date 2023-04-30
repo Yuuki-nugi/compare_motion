@@ -58,7 +58,7 @@ def pose_detection(data, context):
     motion_record_data = {"boneCsvFileName": output_csv_filename, "id": motion_record_ref.id, "userId": user_id, "markers": [],
                           "motionTypeRef": default_motion_type_ref, "comment": "",
                           "thumbnailFileName": output_thumbnail_filename, "createdAt": firestore.SERVER_TIMESTAMP,
-                          "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": False,
+                          "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": frame_rate != None,
                           "model": "mediapipe-default", "shootedDate": firestore.SERVER_TIMESTAMP,
                           "shootingVerticalAngle": 0, "shootingHorizontalAngle": 90, "title": "未設定",
                           "version": 0, "videoFileName": video_file_name, "frameNumber": frameNumber, "fps": frame_rate}
