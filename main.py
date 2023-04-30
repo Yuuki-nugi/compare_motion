@@ -1,7 +1,6 @@
 from google.cloud import firestore
 from google.cloud import storage
 
-import re
 import cv2
 import csv
 import os
@@ -35,8 +34,8 @@ def pose_detection(data, context):
     output_thumbnail_filename = f"thumbnail_image_{formatted_dt}.jpg"
     output_csv_filename = f"pose_points_{formatted_dt}.csv"
 
-    execute_detection(local_file_path, f"/tmp/{output_csv_filename}",
-                      f"/tmp/{output_thumbnail_filename}")
+    frameNumber, frame_rate = execute_detection(local_file_path, f"/tmp/{output_csv_filename}",
+                                                f"/tmp/{output_thumbnail_filename}")
 
     up_csv_blob = bucket.blob(
         f"uploaded/csv/{user_id}/{output_csv_filename}")
@@ -56,13 +55,13 @@ def pose_detection(data, context):
     default_motion_type_ref = client.collection("sport_type").document("bwukr89IMu8vpbUse58w").collection(
         "event_type").document("ZuNCp9bLyvWrujKckiB6").collection("motion_type").document("lg4teMIv0cyEXl9tDyZ9")
 
-    motion_record_data = {"boneCsvFileName": output_csv_filename, "id": motion_record_ref.id,
+    motion_record_data = {"boneCsvFileName": output_csv_filename, "id": motion_record_ref.id, "userId": user_id, "markers": [],
                           "motionTypeRef": default_motion_type_ref, "comment": "",
                           "thumbnailFileName": output_thumbnail_filename, "createdAt": firestore.SERVER_TIMESTAMP,
                           "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": False,
                           "model": "mediapipe-default", "shootedDate": firestore.SERVER_TIMESTAMP,
                           "shootingVerticalAngle": 0, "shootingHorizontalAngle": 90, "title": "未設定",
-                          "version": 0, "videoFileName": video_file_name}
+                          "version": 0, "videoFileName": video_file_name, "frameNumber": frameNumber, "fps": frame_rate}
 
     motion_record_ref.set(motion_record_data)
 
@@ -71,6 +70,7 @@ def pose_detection(data, context):
 
 def execute_detection(video_path, output_csv_path, output_thumbnail_path):
     cap = cv2.VideoCapture(video_path)
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
 
     if not cap.isOpened():
         return
@@ -111,3 +111,4 @@ def execute_detection(video_path, output_csv_path, output_thumbnail_path):
                     break
 
     cap.release()
+    return frame_number, frame_rate
