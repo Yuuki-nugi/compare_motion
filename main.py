@@ -20,8 +20,11 @@ def pose_detection(data, context):
     user_id = path_parts[1]
 
     storage_client = storage.Client()
+    # bucket = storage_client.bucket(
+    #     "athlete-crowd-dev-3f1f2.appspot.com")  # dev用
+    bucket = storage_client.bucket(
+        "athlete-crowd-production.appspot.com")  # prod用
 
-    bucket = storage_client.bucket("athlete-crowd-dev.appspot.com")
     video_file_name = data["value"]["fields"]["videoFileName"]["stringValue"]
 
     local_file_path = f"/tmp/{video_file_name}"
@@ -50,15 +53,14 @@ def pose_detection(data, context):
     os.remove(f'/tmp/{output_csv_filename}')
     os.remove(f'/tmp/{output_thumbnail_filename}')
 
-    motion_record_ref = client.collection("user").document(
-        user_id).collection("motion_record").document()
+    motion_record_ref = client.collection("motion_record").document()
     default_motion_type_ref = client.collection("sport_type").document("bwukr89IMu8vpbUse58w").collection(
         "event_type").document("ZuNCp9bLyvWrujKckiB6").collection("motion_type").document("lg4teMIv0cyEXl9tDyZ9")
 
     motion_record_data = {"boneCsvFileName": output_csv_filename, "id": motion_record_ref.id, "userId": user_id, "markers": [],
                           "motionTypeRef": default_motion_type_ref, "comment": "",
                           "thumbnailFileName": output_thumbnail_filename, "createdAt": firestore.SERVER_TIMESTAMP,
-                          "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": frame_rate != None,
+                          "updatedAt": firestore.SERVER_TIMESTAMP, "isActive": frame_rate != None, "isDeleted": False,
                           "model": "mediapipe-default", "shootedDate": firestore.SERVER_TIMESTAMP,
                           "shootingVerticalAngle": 0, "shootingHorizontalAngle": 90, "title": "未設定",
                           "version": 0, "videoFileName": video_file_name, "frameNumber": frameNumber, "fps": frame_rate}
